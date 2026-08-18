@@ -12,7 +12,7 @@ if(WIN32)
     )
 
     set_target_properties(nova_installer PROPERTIES
-        OUTPUT_NAME "nova-setup"
+        OUTPUT_NAME "Install"
     )
 
     target_compile_features(nova_installer PRIVATE cxx_std_20)
@@ -22,5 +22,13 @@ if(WIN32)
         ole32
         shell32
         uuid
+    )
+
+    # Automatically copy Install.exe to repository root after build
+    add_custom_command(TARGET nova_installer POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:nova_installer>
+            "${CMAKE_SOURCE_DIR}/Install.exe"
+        COMMENT "Copying Install.exe to repository root"
     )
 endif()

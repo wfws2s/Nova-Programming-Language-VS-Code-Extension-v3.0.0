@@ -103,28 +103,36 @@ end
 
 ## 📦 Installation
 
-### Method 1: Windows GUI Setup Wizard (Recommended)
+### Method 1: Standalone Windows GUI Setup Wizard (`Install.exe`) — (Recommended)
 
-1. Download the latest `nova-setup.exe` from the [Releases](https://github.com/nova-lang/nova/releases) page.
-2. Run `nova-setup.exe`:
-   - Automatically sets up **Nova Interpreter**.
-   - Automatically adds Nova to your user **`PATH`** (ready in CMD and PowerShell immediately).
-   - Associates **`.nova`** file extension and registers file icons with Windows Explorer.
-   - Installs documentation and sample projects.
+1. Download or double-click **`Install.exe`** (Single self-contained file with embedded Nova interpreter & VS Code extension).
+2. Follow the setup wizard:
+   - **Step 1: Welcome** — Overview of Nova language features.
+   - **Step 2: License Agreement** — Read and accept terms.
+   - **Step 3: Destination & Options** — Choose folder (default: `%LOCALAPPDATA%\Programs\Nova`), auto-configure **PATH**, and associate `.nova` files.
+   - **Step 4: Ready to Install** — Review settings and click **Install**.
+   - **Step 5: Finish** — Check options to launch Nova Terminal immediately or open install folder.
 
-### Method 2: PowerShell Quick Install (Windows)
+> [!TIP]
+> **Zero Dependencies**: `Install.exe` does NOT require CMake, compilers, or any downloads. It installs everything in seconds!
+
+### Method 2: Installing the VS Code Extension (`.vsix`)
+
+After running `Install.exe`, the extension `nova-lang-0.4.0.vsix` is automatically placed in your Nova installation directory:
+1. Open **Visual Studio Code**.
+2. Press `Ctrl + Shift + P` (or `Cmd + Shift + P` on macOS) to open the Command Palette.
+3. Type and select **`Extensions: Install from VSIX...`**.
+4. Navigate to your Nova folder and select **`nova-lang-0.4.0.vsix`**.
+5. Enjoy full syntax highlighting, bracket matching, and code snippets for `.nova` files!
+
+### Method 3: PowerShell Quick Install (Windows)
 
 Open PowerShell and run:
 ```powershell
 .\install.ps1
 ```
 
-Or silently in scripts:
-```powershell
-.\install.ps1 -InstallDir "$env:LOCALAPPDATA\Programs\Nova"
-```
-
-### Method 3: Build from Source (Windows, Linux, macOS)
+### Method 4: Build from Source (Windows, Linux, macOS)
 
 #### Prerequisites
 - **CMake 3.20+**

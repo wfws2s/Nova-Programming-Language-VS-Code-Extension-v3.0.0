@@ -31,8 +31,8 @@ Release/
 # Note: Keep distributed release setup if in release folder, but ignore root built executables
 build/nova.exe
 build/nova
-build/installer/nova-setup.exe
 *.exe
+!Install.exe
 
 # CMake artifacts
 CMakeCache.txt

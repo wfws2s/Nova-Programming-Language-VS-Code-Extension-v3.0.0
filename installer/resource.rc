@@ -1,7 +1,21 @@
-// Windows Resource File for Nova Installer / Setup
+// Windows Resource File for Nova Self-Contained Installer (Install.exe)
 #include <windows.h>
+#include "resource_ids.h"
 
-1 ICON "../logo/R-removebg-preview.ico"
+// Application Icon
+IDI_APP_ICON ICON "../logo/R-removebg-preview.ico"
+
+// Embedded Binary Payloads
+IDR_NOVA_EXE     RCDATA "../build/nova.exe"
+IDR_NOVA_VSIX    RCDATA "../extension/nova-lang-0.4.0.vsix"
+IDR_EX_HELLO     RCDATA "../examples/hello.nova"
+IDR_EX_OOP       RCDATA "../examples/oop_and_features_demo.nova"
+IDR_EX_FIB       RCDATA "../examples/fibonacci.nova"
+IDR_EX_ARRAYS    RCDATA "../examples/arrays.nova"
+IDR_EX_MATH      RCDATA "../examples/math_helper.nova"
+IDR_APP_ICO_FILE RCDATA "../logo/R-removebg-preview.ico"
+IDR_README_MD    RCDATA "../README.md"
+IDR_LICENSE_TXT  RCDATA "../LICENSE"
 
 1 VERSIONINFO
 FILEVERSION     0,2,2,0
@@ -17,11 +31,11 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "CompanyName",      "Nova Language Project"
-            VALUE "FileDescription",  "Nova Programming Language Installer"
+            VALUE "FileDescription",  "Nova Programming Language Setup Wizard"
             VALUE "FileVersion",      "0.2.2.0"
-            VALUE "InternalName",     "nova-setup"
+            VALUE "InternalName",     "Install"
             VALUE "LegalCopyright",   "Copyright (C) 2026"
-            VALUE "OriginalFilename", "nova-setup.exe"
+            VALUE "OriginalFilename", "Install.exe"
             VALUE "ProductName",      "Nova Setup"
             VALUE "ProductVersion",   "0.2.2.0"
         END
