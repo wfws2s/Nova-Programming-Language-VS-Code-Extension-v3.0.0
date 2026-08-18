@@ -1,0 +1,29 @@
+# External module math_helper.nova
+
+class Calculator
+    fn init(self, brand)
+        self.brand = brand
+    end
+
+    fn compute(self, a, b, op)
+        if op == "+"
+            return a + b
+        elif op == "-"
+            return a - b
+        elif op == "*"
+            return a * b
+        elif op == "/"
+            return a / b
+        else
+            return null
+        end
+    end
+
+    static fn info()
+        return "Nova Calculator v1.0"
+    end
+end
+
+fn power(base, exp)
+    return base ** exp
+end

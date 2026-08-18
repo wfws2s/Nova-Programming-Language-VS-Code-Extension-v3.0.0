@@ -1,0 +1,91 @@
+# Demo of all new Nova Language Features:
+# 1. OOP (Class, Inheritance, Instance & Static Methods, Constructor, super)
+# 2. External File Import with direct path and alias 'as'
+# 3. type inspection
+# 4. random standard library
+# 5. global and local variable scope
+
+# === 1. External Module Import with alias ===
+import "./math_helper.nova" as helper
+import random as rnd
+
+print("=== External Module Test ===")
+print("Calculator Info:", helper.Calculator.info())
+let calc = helper.Calculator("Casio")
+print("Calc result (5 * 6):", calc.compute(5, 6, "*"))
+print("Helper power (2 ** 8):", helper.power(2, 8))
+
+# === 2. OOP System & Inheritance ===
+print("\n=== OOP & Inheritance Test ===")
+class Animal
+    fn init(self, name, sound)
+        self.name = name
+        self.sound = sound
+    end
+
+    fn speak(self)
+        return self.name + " says " + self.sound
+    end
+
+    static fn category()
+        return "Living Creature"
+    end
+end
+
+class Dog extends Animal
+    fn init(self, name, breed)
+        super.init(name, "Woof")
+        self.breed = breed
+    end
+
+    fn speak(self)
+        return self.name + " (" + self.breed + ") barks: " + self.sound + "!"
+    end
+
+    fn parent_speak(self)
+        return super.speak()
+    end
+end
+
+let dog = Dog("Rex", "German Shepherd")
+print("Dog name:", dog.name)
+print("Dog breed:", dog.breed)
+print("Dog speak:", dog.speak())
+print("Parent speak:", dog.parent_speak())
+print("Static category:", Animal.category())
+
+# === 3. Type Command ===
+print("\n=== Type Inspection Test ===")
+print("type(123):", type(123))
+print("type('hello'):", type("hello"))
+print("type([1, 2]):", type([1, 2]))
+print("type(dog):", type(dog))
+print("type(Dog):", type(Dog))
+print("type dog (keyword):", type dog)
+
+# === 4. Random Library ===
+print("\n=== Random Library Test ===")
+print("Random float [0, 1):", rnd.random())
+print("Random int [10, 50]:", rnd.randint(10, 50))
+let fruits = ["Apple", "Banana", "Orange", "Grape", "Mango"]
+print("Random choice from fruits:", rnd.choice(fruits))
+let cards = [1, 2, 3, 4, 5]
+rnd.shuffle(cards)
+print("Shuffled list:", cards)
+
+# === 5. Global & Local Scope ===
+print("\n=== Global & Local Scope Test ===")
+score = 100
+let level = 1
+
+fn update_game()
+    global score
+    score = score + 50
+    let level = 2
+    print("Inside fn -> local level:", level, "| global score:", score)
+end
+
+update_game()
+print("Outside fn -> outer level:", level, "| modified global score:", score)
+
+print("\nAll feature tests completed successfully!")

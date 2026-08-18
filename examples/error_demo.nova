@@ -1,0 +1,6 @@
+# Error test
+let x = 10
+let y = "hello"
+
+let result = x + y
+print(result)

@@ -1,0 +1,57 @@
+# NOVA Full-Release Features Demonstration
+
+# 1. Imports and standard libraries
+import math
+import string
+import list
+import dict
+
+print("=== Math & Dot Access ===")
+print("Square root of 25 is {math.sqrt(25)}")
+print("Pi constant is {math.pi}")
+print("Min of (10, 3, 40) is {math.min(10, 3, 40)}")
+
+# 2. Dynamic Input with read()
+print("\n=== Dynamic Input ===")
+# read() dynamically infers types (Numbers, Booleans, Lists, Dicts, Strings) without needing number()
+val = read("Enter any value (e.g. 42, true, [1, 2], hello): ")
+print("You entered value: {val}, which has type: {typeof(val)}")
+
+# 3. Type Checking with 'is' and 'typeof'
+if val is "Number"
+    print("Value is numeric! val * 2 = {val * 2}")
+elif val is "Boolean"
+    print("Value is a boolean flag!")
+elif val is "List"
+    print("Value is a list with length {len(val)}")
+else
+    print("Value is of type {typeof(val)}")
+end
+
+# 4. Collection APIs & Slicing
+print("\n=== Collections & Slicing ===")
+fruits = ["apple", "banana", "cherry", "date", "elderberry"]
+append(fruits, "fig")
+print("All fruits: {fruits}")
+print("Sliced [1..4]: {fruits[1..4]}")
+print("From start [..3]: {fruits[..3]}")
+print("Last two [-2..]: {fruits[-2..]}")
+removed = pop(fruits)
+print("Popped item: {removed}, remaining: {fruits}")
+
+# 5. String Manipulation
+tags = split("frontend,backend,devops,ai", ",")
+print("Split tags: {tags}")
+print("Uppercase: {string.to_upper(\"nova language\")}")
+
+# 6. Exceptions (try/catch)
+print("\n=== Exception Handling ===")
+try
+    result = 100 / 0
+catch err
+    print("Successfully caught error!")
+    print("Type: {err[\"type\"]}")
+    print("Message: {err[\"message\"]}")
+end
+
+print("\nAll full-release features demonstrated successfully!")

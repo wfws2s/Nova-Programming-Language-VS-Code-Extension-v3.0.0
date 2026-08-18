@@ -1,0 +1,21 @@
+# NOVA Demo: Arrays, Closures, and Built-ins
+
+let numbers = [10, 25, 42, 99]
+print("Array:", numbers)
+print("Length:", len(numbers))
+print("First element:", numbers[0])
+print("Last element:", numbers[len(numbers) - 1])
+
+# Higher-order function with closure
+fn make_multiplier(factor)
+    fn multiplier(val)
+        return val * factor
+    end
+    return multiplier
+end
+
+let double_val = make_multiplier(2)
+let triple_val = make_multiplier(3)
+
+print("Double 21:", double_val(21))
+print("Triple 14:", triple_val(14))

@@ -1,0 +1,38 @@
+// Windows Resource File for Nova interpreter
+// Embeds the application icon into the final .exe
+
+#include <windows.h>
+
+// ID 1 is the conventional "main application icon" slot.
+// Windows Explorer picks this up automatically.
+1 ICON "logo/R-removebg-preview.ico"
+
+// Version information block (optional, but polishes the exe Properties dialog)
+1 VERSIONINFO
+FILEVERSION     0,2,2,0
+PRODUCTVERSION  0,2,2,0
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+FILEFLAGS       0
+FILEOS          VOS__WINDOWS32
+FILETYPE        VFT_APP
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"  // Language: English (US), Unicode
+        BEGIN
+            VALUE "CompanyName",      "Nova Language Project"
+            VALUE "FileDescription",  "Nova Programming Language Interpreter"
+            VALUE "FileVersion",      "0.2.2.0"
+            VALUE "InternalName",     "nova"
+            VALUE "LegalCopyright",   "Copyright (C) 2026"
+            VALUE "OriginalFilename", "nova.exe"
+            VALUE "ProductName",      "Nova"
+            VALUE "ProductVersion",   "0.2.2.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200
+    END
+END

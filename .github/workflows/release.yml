@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build Release Binary (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: nova-windows-x64
+            is_windows: true
+          - os: ubuntu-latest
+            artifact_name: nova-linux-x64
+            is_windows: false
+          - os: macos-latest
+            artifact_name: nova-macos-arm64
+            is_windows: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Ninja
+        uses: ashley-taylor/configure-ninja-action@v1.0
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: |
+          cmake --build build --config Release
+
+      - name: Run Tests
+        run: |
+          ctest --test-dir build --output-on-failure
+
+      - name: Package Windows Artifacts
+        if: matrix.is_windows
+        run: |
+          mkdir dist
+          copy build\nova.exe dist\
+          copy build\installer\nova-setup.exe dist\
+          copy install.ps1 dist\
+          copy install.bat dist\
+          copy README.md dist\
+          copy LICENSE dist\
+          xcopy /E /I examples dist\examples
+          xcopy /E /I docs dist\docs
+          Compress-Archive -Path dist\* -DestinationPath ${{ matrix.artifact_name }}.zip
+
+      - name: Package Unix Artifacts
+        if: "!matrix.is_windows"
+        run: |
+          mkdir dist
+          cp build/nova dist/
+          cp -r examples docs README.md LICENSE dist/
+          tar -czvf ${{ matrix.artifact_name }}.tar.gz -C dist .
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.zip
+            *.tar.gz
+            dist/nova-setup.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

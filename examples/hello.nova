@@ -1,0 +1,13 @@
+# NOVA Demo: Basic Variables and Control Flow
+
+let name = "Kiri"
+let age = 14
+
+print("Hello, my name is", name)
+print("I am", age, "years old.")
+
+if age >= 18
+    print(name, "is an adult.")
+else
+    print(name, "is a child.")
+end
