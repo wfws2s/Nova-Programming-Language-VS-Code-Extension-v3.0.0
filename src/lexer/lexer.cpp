@@ -307,6 +307,8 @@ std::optional<TokenType> Lexer::lookup_keyword(const std::string& text) const {
     if (text == "global") return TokenType::Global;
     if (text == "new") return TokenType::New;
     if (text == "super") return TokenType::Super;
+    if (text == "async") return TokenType::Async;
+    if (text == "await") return TokenType::Await;
     return std::nullopt;
 }
 

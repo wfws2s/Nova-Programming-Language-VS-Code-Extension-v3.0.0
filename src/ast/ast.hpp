@@ -439,14 +439,17 @@ public:
     std::string name;
     std::vector<std::string> params;
     std::shared_ptr<BlockStmt> body;
+    bool is_async = false;
 
     FnDeclStmt(std::string name,
                std::vector<std::string> params,
                std::shared_ptr<BlockStmt> body,
+               bool is_async,
                SourceSpan span)
         : name(std::move(name)),
           params(std::move(params)),
-          body(std::move(body)) {
+          body(std::move(body)),
+          is_async(is_async) {
         this->span = span;
     }
 
