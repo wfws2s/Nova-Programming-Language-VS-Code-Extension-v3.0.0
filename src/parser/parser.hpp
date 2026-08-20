@@ -78,7 +78,7 @@ private:
     std::unique_ptr<ast::Stmt> parse_if_statement();
     std::unique_ptr<ast::Stmt> parse_while_statement();
     std::unique_ptr<ast::Stmt> parse_for_statement();
-    std::unique_ptr<ast::Stmt> parse_fn_declaration();
+    std::unique_ptr<ast::Stmt> parse_fn_declaration(bool is_async = false);
     std::unique_ptr<ast::Stmt> parse_return_statement();
     std::unique_ptr<ast::Stmt> parse_try_statement();
     std::unique_ptr<ast::Stmt> parse_import_statement();

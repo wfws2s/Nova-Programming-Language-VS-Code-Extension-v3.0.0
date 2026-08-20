@@ -43,6 +43,8 @@ enum class TokenType {
     Global,
     New,
     Super,
+    Async,
+    Await,
 
     // Operators and punctuation
     Plus,

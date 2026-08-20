@@ -216,6 +216,15 @@ std::unique_ptr<ast::Stmt> Parser::parse_declaration_or_statement() {
         if (match(TokenType::For)) {
             return parse_for_statement();
         }
+        if (match(TokenType::Async)) {
+            // async fn ...
+            if (match(TokenType::Fn)) {
+                return parse_fn_declaration(true);
+            }
+            report_error(peek(), "Expected 'fn' after 'async'");
+            synchronize();
+            return nullptr;
+        }
         if (match(TokenType::Fn)) {
             return parse_fn_declaration();
         }
@@ -322,7 +331,7 @@ std::unique_ptr<ast::Stmt> Parser::parse_for_statement() {
     return std::make_unique<ast::ForStmt>(std::move(var_name), std::move(iterable), std::move(body), span);
 }
 
-std::unique_ptr<ast::Stmt> Parser::parse_fn_declaration() {
+std::unique_ptr<ast::Stmt> Parser::parse_fn_declaration(bool is_async) {
     Token fn_token = previous();
     const Token& name_token = consume_binding_name("function name after 'fn'");
     std::string name = name_token.lexeme;
@@ -347,7 +356,7 @@ std::unique_ptr<ast::Stmt> Parser::parse_fn_declaration() {
     consume_statement_terminator();
 
     return std::make_unique<ast::FnDeclStmt>(
-        std::move(name), std::move(params), std::move(body), span);
+        std::move(name), std::move(params), std::move(body), is_async, span);
 }
 
 std::unique_ptr<ast::Stmt> Parser::parse_return_statement() {
@@ -611,6 +620,12 @@ std::unique_ptr<ast::Expr> Parser::parse_prefix() {
         const Token& close_p = consume(TokenType::RightParen, "Expected ')' after arguments");
         SourceSpan span{new_tok.span.start, close_p.span.end};
         return std::make_unique<ast::NewExpr>(std::move(cls_name), std::move(args), span);
+    }
+    if (match(TokenType::Await)) {
+        Token op = previous();
+        auto right = parse_expression(Precedence::Unary);
+        SourceSpan span{op.span.start, right ? right->span.end : op.span.end};
+        return std::make_unique<ast::UnaryExpr>(op, std::move(right), span);
     }
     if (match(TokenType::Identifier)) {
         Token id_token = previous();

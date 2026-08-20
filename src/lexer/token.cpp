@@ -35,6 +35,8 @@ bool Token::is_keyword() const {
         case TokenType::Global:
         case TokenType::New:
         case TokenType::Super:
+        case TokenType::Async:
+        case TokenType::Await:
             return true;
         default:
             return false;
@@ -112,6 +114,10 @@ const char* token_type_name(TokenType type) {
             return "New";
         case TokenType::Super:
             return "Super";
+        case TokenType::Async:
+            return "Async";
+        case TokenType::Await:
+            return "Await";
         case TokenType::Plus:
             return "Plus";
         case TokenType::Minus:
