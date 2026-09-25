@@ -126,6 +126,11 @@ Token Lexer::scan_token() {
             skip_comment();
             return scan_token();
         case '"':
+            // Check for triple-quoted string
+            if (peek() == '"' && peek_next() == '"') {
+                advance(); advance(); // consume remaining two "
+                return scan_triple_string(start);
+            }
             return scan_string(start);
         case '(':
             return make_token(TokenType::LeftParen, start, "(");
@@ -259,6 +264,97 @@ Token Lexer::scan_string(SourceLocation start) {
     return make_token(TokenType::String, start, std::move(value));
 }
 
+// scan_fstring: lexes the raw content of an f"..." string.
+// The opening quote has already been consumed.
+// Stores the raw string (with {expr} intact) as the lexeme so the parser
+// can later split it into parts.
+Token Lexer::scan_fstring(SourceLocation start) {
+    std::string value;
+    int brace_depth = 0;
+
+    while (!is_at_end()) {
+        char c = peek();
+        if (c == '"' && brace_depth == 0) {
+            advance(); // consume closing quote
+            return make_token(TokenType::FString, start, std::move(value));
+        }
+        if (c == '\n') {
+            report_error("Unterminated f-string literal");
+            return make_token(TokenType::Eof, start, "");
+        }
+        if (c == '{') {
+            ++brace_depth;
+        } else if (c == '}') {
+            if (brace_depth > 0) --brace_depth;
+        }
+        if (c == '\\') {
+            advance();
+            if (is_at_end()) {
+                report_error("Unterminated f-string literal");
+                return make_token(TokenType::Eof, start, "");
+            }
+            char escaped = advance();
+            switch (escaped) {
+                case 'n':  value.push_back('\\'); value.push_back('n');  break;
+                case 't':  value.push_back('\\'); value.push_back('t');  break;
+                case 'r':  value.push_back('\\'); value.push_back('r');  break;
+                case '\\': value.push_back('\\'); value.push_back('\\'); break;
+                case '"':  value.push_back('\\'); value.push_back('"');  break;
+                case '{':  value.push_back('{'); break;
+                case '}':  value.push_back('}'); break;
+                default:
+                    value.push_back('\\');
+                    value.push_back(escaped);
+                    break;
+            }
+            continue;
+        }
+        value.push_back(advance());
+    }
+    report_error("Unterminated f-string literal");
+    return make_token(TokenType::Eof, start, "");
+}
+
+// scan_triple_string: lexes a """...""" multiline string.
+// All three opening quotes have already been consumed.
+Token Lexer::scan_triple_string(SourceLocation start) {
+    std::string value;
+    // Strip a leading newline if immediately following """
+    if (!is_at_end() && peek() == '\n') {
+        advance();
+    }
+    while (!is_at_end()) {
+        if (peek() == '"' && current_ + 1 < source_.size() && source_[current_ + 1] == '"'
+            && current_ + 2 < source_.size() && source_[current_ + 2] == '"') {
+            advance(); advance(); advance(); // consume """
+            return make_token(TokenType::String, start, std::move(value));
+        }
+        char c = advance();
+        if (c == '\\') {
+            if (is_at_end()) {
+                report_error("Unterminated triple-quoted string");
+                return make_token(TokenType::Eof, start, "");
+            }
+            char escaped = advance();
+            switch (escaped) {
+                case 'n':  value.push_back('\n'); break;
+                case 't':  value.push_back('\t'); break;
+                case 'r':  value.push_back('\r'); break;
+                case '\\': value.push_back('\\'); break;
+                case '"':  value.push_back('"');  break;
+                default:
+                    value.push_back('\\');
+                    value.push_back(escaped);
+                    break;
+            }
+            continue;
+        }
+        value.push_back(c);
+    }
+    report_error("Unterminated triple-quoted string");
+    return make_token(TokenType::Eof, start, "");
+}
+
 Token Lexer::scan_identifier(SourceLocation start) {
     --current_;
     --location_.offset;
@@ -271,6 +367,18 @@ Token Lexer::scan_identifier(SourceLocation start) {
     }
 
     std::string text = source_.substr(start.offset, location_.offset - start.offset);
+
+    // Detect f-string: single char 'f' immediately followed by '"'
+    if (text == "f" && peek() == '"') {
+        advance(); // consume the opening quote
+        // Check for triple-quoted f-string
+        if (peek() == '"' && peek_next() == '"') {
+            advance(); advance();
+            // Treat triple-quoted f-string same as regular f-string for now
+        }
+        return scan_fstring(start);
+    }
+
     if (auto keyword = lookup_keyword(text)) {
         return make_token(*keyword, start, text);
     }
@@ -307,6 +415,9 @@ std::optional<TokenType> Lexer::lookup_keyword(const std::string& text) const {
     if (text == "global") return TokenType::Global;
     if (text == "new") return TokenType::New;
     if (text == "super") return TokenType::Super;
+    if (text == "break") return TokenType::Break;
+    if (text == "continue") return TokenType::Continue;
+    if (text == "enum") return TokenType::Enum;
     return std::nullopt;
 }
 

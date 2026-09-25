@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(nova
-    VERSION 0.2.2
+    VERSION 0.3.0
     DESCRIPTION "NOVA programming language interpreter"
     LANGUAGES CXX RC
 )
@@ -16,7 +16,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Release RelWithDebInfo MinSizeRel)
 endif()
 
-# Core static library (lexer, AST, parser, runtime, interpreter, diagnostics)
+# Core static library (lexer, AST, parser, runtime, interpreter, diagnostics, VM)
 add_library(nova_core STATIC
     src/lexer/token.cpp
     src/lexer/lexer_error.cpp
@@ -28,6 +28,9 @@ add_library(nova_core STATIC
     src/runtime/builtins.cpp
     src/interpreter/interpreter.cpp
     src/interpreter/diagnostics.cpp
+    src/vm/chunk.cpp
+    src/vm/compiler.cpp
+    src/vm/vm.cpp
 )
 
 target_include_directories(nova_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)

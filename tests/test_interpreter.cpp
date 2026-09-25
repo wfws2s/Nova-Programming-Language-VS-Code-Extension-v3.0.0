@@ -626,7 +626,7 @@ print(type num)
 print(type str)
 )NOVA", err, err_msg);
     expect_true(!err, "type operator no error");
-    expect_eq(out, "Number\nString\nList\nDictionary\nInstance\nClass\nNumber\nString\n", "type operator output");
+    expect_eq(out, "Number\nString\nList\nDictionary\nTestClass\nClass\nNumber\nString\n", "type operator output");
 }
 
 void test_interp_global_and_local_scope() {
@@ -710,6 +710,137 @@ void test_interp_import_external_file() {
     std::filesystem::remove(ext_file);
 }
 
+void test_interp_break_and_continue() {
+    bool err = false;
+    std::string err_msg;
+    std::string out = run_code(R"NOVA(
+# test while with break and continue
+i = 0
+while i < 10
+    i = i + 1
+    if i == 3
+        continue
+    end
+    if i == 6
+        break
+    end
+    print(i)
+end
+
+# test for loop with break and continue
+for x in 1..6
+    if x == 2
+        continue
+    end
+    if x == 5
+        break
+    end
+    print(x)
+end
+)NOVA", err, err_msg);
+    expect_true(!err, "break and continue no error");
+    expect_eq(out, "1\n2\n4\n5\n1\n3\n4\n", "break and continue output");
+}
+
+void test_interp_enum() {
+    bool err = false;
+    std::string err_msg;
+    std::string out = run_code(R"NOVA(
+enum Color
+    RED
+    GREEN
+    BLUE
+end
+
+print(Color.RED)
+print(Color.GREEN)
+print(Color.BLUE)
+print(Color.RED == "RED")
+)NOVA", err, err_msg);
+    expect_true(!err, "enum declaration no error");
+    expect_eq(out, "RED\nGREEN\nBLUE\ntrue\n", "enum declaration output");
+}
+
+void test_interp_list_comprehension() {
+    bool err = false;
+    std::string err_msg;
+    std::string out = run_code(R"NOVA(
+let squares = [x * x for x in 1..6]
+print(squares)
+
+let evens = [x for x in 1..11 if x % 2 == 0]
+print(evens)
+)NOVA", err, err_msg);
+    expect_true(!err, "list comprehension no error");
+    expect_eq(out, "[1, 4, 9, 16, 25]\n[2, 4, 6, 8, 10]\n", "list comprehension output");
+}
+
+void test_interp_fstring_and_triple_quote() {
+    bool err = false;
+    std::string err_msg;
+    std::string out = run_code(R"NOVA(
+let lang = "Nova"
+let version = 3
+print(f"Welcome to {lang} v0.{version}!")
+
+let multi = """line 1
+line 2
+line 3"""
+print(multi)
+)NOVA", err, err_msg);
+    expect_true(!err, "fstring and triple quote no error");
+    expect_eq(out, "Welcome to Nova v0.3!\nline 1\nline 2\nline 3\n", "fstring and triple quote output");
+}
+
+void test_interp_file_and_os_modules() {
+    bool err = false;
+    std::string err_msg;
+    std::string out = run_code(R"NOVA(
+import file as f
+import os
+
+let test_path = "./temp_test_file.txt"
+f.write(test_path, "Hello Nova File System\nSecond line")
+print(f.exists(test_path))
+
+let content = f.read(test_path)
+print(content)
+
+let lines = f.lines(test_path)
+print(len(lines))
+print(lines[0])
+
+f.remove(test_path)
+print(f.exists(test_path))
+
+print(os.platform is "String")
+print(type(os.cwd()))
+)NOVA", err, err_msg);
+    expect_true(!err, "file and os modules no error");
+    expect_eq(out, "true\nHello Nova File System\nSecond line\n2\nHello Nova File System\nfalse\ntrue\nString\n", "file and os modules output");
+}
+
+void test_interp_json_and_time_modules() {
+    bool err = false;
+    std::string err_msg;
+    std::string out = run_code(R"NOVA(
+import json
+import time
+
+let data = {"name": "Nova", "version": 0.3, "active": true, "items": [10, 20]}
+let serialized = json.stringify(data)
+
+let parsed = json.parse(serialized)
+print(parsed["name"])
+print(parsed["active"])
+print(parsed["items"][0])
+
+print(time.now() > 0)
+)NOVA", err, err_msg);
+    expect_true(!err, "json and time modules no error");
+    expect_eq(out, "Nova\ntrue\n10\ntrue\n", "json and time modules output");
+}
+
 int main() {
     test_interp_basic_print();
     test_interp_arithmetic();
@@ -750,6 +881,12 @@ int main() {
     test_interp_global_and_local_scope();
     test_interp_random_module();
     test_interp_import_external_file();
+    test_interp_break_and_continue();
+    test_interp_enum();
+    test_interp_list_comprehension();
+    test_interp_fstring_and_triple_quote();
+    test_interp_file_and_os_modules();
+    test_interp_json_and_time_modules();
 
     return finish("test_interpreter");
 }

@@ -5,12 +5,16 @@
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <limits>
 #include <random>
 #include <sstream>
+#include <thread>
 
 namespace nova {
 
@@ -40,6 +44,247 @@ void require_within_collection_limit(unsigned long long size, const SourceSpan& 
                                "Range exceeds the maximum collection size of " +
                                    std::to_string(kMaxCollectionElements), span);
     }
+}
+
+std::string json_stringify_helper(const Value& val) {
+    if (val.is_null()) return "null";
+    if (val.is_bool()) return val.as_bool() ? "true" : "false";
+    if (val.is_number()) {
+        std::ostringstream ss;
+        double d = val.as_number();
+        if (std::trunc(d) == d && std::abs(d) < 1e15) {
+            ss << static_cast<long long>(d);
+        } else {
+            ss << d;
+        }
+        return ss.str();
+    }
+    if (val.is_string()) {
+        std::string s = "\"";
+        for (char c : val.as_string()) {
+            if (c == '"') s += "\\\"";
+            else if (c == '\\') s += "\\\\";
+            else if (c == '\n') s += "\\n";
+            else if (c == '\r') s += "\\r";
+            else if (c == '\t') s += "\\t";
+            else s += c;
+        }
+        s += "\"";
+        return s;
+    }
+    if (val.is_list()) {
+        auto list = val.as_list();
+        std::string s = "[";
+        for (std::size_t i = 0; i < list->size(); ++i) {
+            if (i > 0) s += ", ";
+            s += json_stringify_helper((*list)[i]);
+        }
+        s += "]";
+        return s;
+    }
+    if (val.is_dict()) {
+        auto dict = val.as_dict();
+        std::string s = "{";
+        bool first = true;
+        for (const auto& [k, v] : *dict) {
+            if (!first) s += ", ";
+            first = false;
+            s += "\"";
+            for (char c : k) {
+                if (c == '"') s += "\\\"";
+                else if (c == '\\') s += "\\\\";
+                else if (c == '\n') s += "\\n";
+                else if (c == '\r') s += "\\r";
+                else if (c == '\t') s += "\\t";
+                else s += c;
+            }
+            s += "\": ";
+            s += json_stringify_helper(v);
+        }
+        s += "}";
+        return s;
+    }
+    return "\"" + val.to_string() + "\"";
+}
+
+class SimpleJsonParser {
+public:
+    explicit SimpleJsonParser(std::string_view src) : src_(src) {}
+
+    Value parse(const SourceSpan& span) {
+        skip_whitespace();
+        if (pos_ >= src_.size()) {
+            throw NovaRuntimeError(RuntimeErrorType::RuntimeError, "json.parse(): Empty JSON input", span);
+        }
+        Value val = parse_value(span);
+        skip_whitespace();
+        if (pos_ < src_.size()) {
+            throw NovaRuntimeError(RuntimeErrorType::RuntimeError, "json.parse(): Unexpected trailing characters in JSON", span);
+        }
+        return val;
+    }
+
+private:
+    void skip_whitespace() {
+        while (pos_ < src_.size() && (src_[pos_] == ' ' || src_[pos_] == '\t' || src_[pos_] == '\n' || src_[pos_] == '\r')) {
+            ++pos_;
+        }
+    }
+
+    Value parse_value(const SourceSpan& span) {
+        skip_whitespace();
+        if (pos_ >= src_.size()) {
+            throw NovaRuntimeError(RuntimeErrorType::RuntimeError, "json.parse(): Unexpected end of JSON", span);
+        }
+        char c = src_[pos_];
+        if (c == 'n') {
+            if (match("null")) return Value();
+        } else if (c == 't') {
+            if (match("true")) return Value(true);
+        } else if (c == 'f') {
+            if (match("false")) return Value(false);
+        } else if (c == '"') {
+            return Value(parse_string(span));
+        } else if (c == '[') {
+            return Value(parse_array(span));
+        } else if (c == '{') {
+            return Value(parse_object(span));
+        } else if (c == '-' || std::isdigit(static_cast<unsigned char>(c))) {
+            return Value(parse_number(span));
+        }
+        throw NovaRuntimeError(RuntimeErrorType::RuntimeError, std::string("json.parse(): Unexpected character '") + c + "' in JSON", span);
+    }
+
+    bool match(std::string_view text) {
+        if (src_.substr(pos_, text.size()) == text) {
+            pos_ += text.size();
+            return true;
+        }
+        return false;
+    }
+
+    std::string parse_string(const SourceSpan& span) {
+        if (src_[pos_] != '"') {
+            throw NovaRuntimeError(RuntimeErrorType::RuntimeError, "json.parse(): Expected '\"'", span);
+        }
+        ++pos_; // skip '"'
+        std::string res;
+        while (pos_ < src_.size() && src_[pos_] != '"') {
+            char c = src_[pos_++];
+            if (c == '\\') {
+                if (pos_ >= src_.size()) {
+                    throw NovaRuntimeError(RuntimeErrorType::RuntimeError, "json.parse(): Unterminated string escape", span);
+                }
+                char esc = src_[pos_++];
+                switch (esc) {
+                    case '"': res.push_back('"'); break;
+                    case '\\': res.push_back('\\'); break;
+                    case '/': res.push_back('/'); break;
+                    case 'b': res.push_back('\b'); break;
+                    case 'f': res.push_back('\f'); break;
+                    case 'n': res.push_back('\n'); break;
+                    case 'r': res.push_back('\r'); break;
+                    case 't': res.push_back('\t'); break;
+                    default: res.push_back(esc); break;
+                }
+            } else {
+                res.push_back(c);
+            }
+        }
+        if (pos_ >= src_.size() || src_[pos_] != '"') {
+            throw NovaRuntimeError(RuntimeErrorType::RuntimeError, "json.parse(): Unterminated string in JSON", span);
+        }
+        ++pos_; // consume closing '"'
+        return res;
+    }
+
+    double parse_number(const SourceSpan& span) {
+        std::size_t start = pos_;
+        if (src_[pos_] == '-') ++pos_;
+        while (pos_ < src_.size() && std::isdigit(static_cast<unsigned char>(src_[pos_]))) ++pos_;
+        if (pos_ < src_.size() && src_[pos_] == '.') {
+            ++pos_;
+            while (pos_ < src_.size() && std::isdigit(static_cast<unsigned char>(src_[pos_]))) ++pos_;
+        }
+        if (pos_ < src_.size() && (src_[pos_] == 'e' || src_[pos_] == 'E')) {
+            ++pos_;
+            if (pos_ < src_.size() && (src_[pos_] == '+' || src_[pos_] == '-')) ++pos_;
+            while (pos_ < src_.size() && std::isdigit(static_cast<unsigned char>(src_[pos_]))) ++pos_;
+        }
+        std::string num_str(src_.substr(start, pos_ - start));
+        try {
+            return std::stod(num_str);
+        } catch (...) {
+            throw NovaRuntimeError(RuntimeErrorType::RuntimeError, "json.parse(): Invalid number '" + num_str + "'", span);
+        }
+    }
+
+    std::shared_ptr<ListObject> parse_array(const SourceSpan& span) {
+        ++pos_; // skip '['
+        auto list = std::make_shared<ListObject>();
+        skip_whitespace();
+        if (pos_ < src_.size() && src_[pos_] == ']') {
+            ++pos_;
+            return list;
+        }
+        while (pos_ < src_.size()) {
+            list->push_back(parse_value(span));
+            skip_whitespace();
+            if (pos_ < src_.size() && src_[pos_] == ',') {
+                ++pos_;
+                skip_whitespace();
+            } else if (pos_ < src_.size() && src_[pos_] == ']') {
+                ++pos_;
+                return list;
+            } else {
+                throw NovaRuntimeError(RuntimeErrorType::RuntimeError, "json.parse(): Expected ',' or ']' in array", span);
+            }
+        }
+        throw NovaRuntimeError(RuntimeErrorType::RuntimeError, "json.parse(): Unterminated array in JSON", span);
+    }
+
+    std::shared_ptr<DictObject> parse_object(const SourceSpan& span) {
+        ++pos_; // skip '{'
+        auto dict = std::make_shared<DictObject>();
+        skip_whitespace();
+        if (pos_ < src_.size() && src_[pos_] == '}') {
+            ++pos_;
+            return dict;
+        }
+        while (pos_ < src_.size()) {
+            skip_whitespace();
+            if (pos_ >= src_.size() || src_[pos_] != '"') {
+                throw NovaRuntimeError(RuntimeErrorType::RuntimeError, "json.parse(): Expected string key in JSON object", span);
+            }
+            std::string key = parse_string(span);
+            skip_whitespace();
+            if (pos_ >= src_.size() || src_[pos_] != ':') {
+                throw NovaRuntimeError(RuntimeErrorType::RuntimeError, "json.parse(): Expected ':' after key in JSON object", span);
+            }
+            ++pos_; // skip ':'
+            Value val = parse_value(span);
+            (*dict)[std::move(key)] = std::move(val);
+            skip_whitespace();
+            if (pos_ < src_.size() && src_[pos_] == ',') {
+                ++pos_;
+                skip_whitespace();
+            } else if (pos_ < src_.size() && src_[pos_] == '}') {
+                ++pos_;
+                return dict;
+            } else {
+                throw NovaRuntimeError(RuntimeErrorType::RuntimeError, "json.parse(): Expected ',' or '}' in object", span);
+            }
+        }
+        throw NovaRuntimeError(RuntimeErrorType::RuntimeError, "json.parse(): Unterminated object in JSON", span);
+    }
+
+    std::string_view src_;
+    std::size_t pos_ = 0;
+};
+
+Value parse_json_string(const std::string& input, const SourceSpan& span) {
+    SimpleJsonParser parser(input);
+    return parser.parse(span);
 }
 
 }  // namespace
@@ -424,6 +669,212 @@ std::shared_ptr<DictObject> Interpreter::get_or_create_std_module(const std::str
         }, "random.range");
 
         (*dict)["randrange"] = (*dict)["range"];
+
+        module_cache_[name] = dict;
+        return dict;
+    }
+
+    if (name == "file" || name == "io") {
+        auto dict = std::make_shared<DictObject>();
+
+        (*dict)["read"] = Value([](const std::vector<Value>& args, const SourceSpan& span) -> Value {
+            if (args.size() != 1 || !args[0].is_string()) {
+                throw NovaRuntimeError(RuntimeErrorType::TypeError, "file.read() requires 1 String path argument", span);
+            }
+            std::filesystem::path p(args[0].as_string());
+            if (!std::filesystem::exists(p)) {
+                throw NovaRuntimeError(RuntimeErrorType::RuntimeError, "file.read(): File not found: " + p.string(), span);
+            }
+            std::ifstream file(p, std::ios::binary);
+            if (!file) {
+                throw NovaRuntimeError(RuntimeErrorType::RuntimeError, "file.read(): Could not open file: " + p.string(), span);
+            }
+            std::stringstream buffer;
+            buffer << file.rdbuf();
+            return Value(buffer.str());
+        }, "file.read");
+
+        (*dict)["write"] = Value([](const std::vector<Value>& args, const SourceSpan& span) -> Value {
+            if (args.size() != 2 || !args[0].is_string() || !args[1].is_string()) {
+                throw NovaRuntimeError(RuntimeErrorType::TypeError, "file.write() requires 2 String arguments (path, content)", span);
+            }
+            std::filesystem::path p(args[0].as_string());
+            std::ofstream file(p, std::ios::binary);
+            if (!file) {
+                throw NovaRuntimeError(RuntimeErrorType::RuntimeError, "file.write(): Could not open file for writing: " + p.string(), span);
+            }
+            file << args[1].as_string();
+            return Value();
+        }, "file.write");
+
+        (*dict)["append"] = Value([](const std::vector<Value>& args, const SourceSpan& span) -> Value {
+            if (args.size() != 2 || !args[0].is_string() || !args[1].is_string()) {
+                throw NovaRuntimeError(RuntimeErrorType::TypeError, "file.append() requires 2 String arguments (path, content)", span);
+            }
+            std::filesystem::path p(args[0].as_string());
+            std::ofstream file(p, std::ios::app | std::ios::binary);
+            if (!file) {
+                throw NovaRuntimeError(RuntimeErrorType::RuntimeError, "file.append(): Could not open file for appending: " + p.string(), span);
+            }
+            file << args[1].as_string();
+            return Value();
+        }, "file.append");
+
+        (*dict)["exists"] = Value([](const std::vector<Value>& args, const SourceSpan& span) -> Value {
+            if (args.size() != 1 || !args[0].is_string()) {
+                throw NovaRuntimeError(RuntimeErrorType::TypeError, "file.exists() requires 1 String path argument", span);
+            }
+            std::filesystem::path p(args[0].as_string());
+            return Value(std::filesystem::exists(p));
+        }, "file.exists");
+
+        (*dict)["remove"] = Value([](const std::vector<Value>& args, const SourceSpan& span) -> Value {
+            if (args.size() != 1 || !args[0].is_string()) {
+                throw NovaRuntimeError(RuntimeErrorType::TypeError, "file.remove() requires 1 String path argument", span);
+            }
+            std::filesystem::path p(args[0].as_string());
+            std::error_code ec;
+            bool ok = std::filesystem::remove(p, ec);
+            return Value(ok);
+        }, "file.remove");
+
+        (*dict)["lines"] = Value([](const std::vector<Value>& args, const SourceSpan& span) -> Value {
+            if (args.size() != 1 || !args[0].is_string()) {
+                throw NovaRuntimeError(RuntimeErrorType::TypeError, "file.lines() requires 1 String path argument", span);
+            }
+            std::filesystem::path p(args[0].as_string());
+            if (!std::filesystem::exists(p)) {
+                throw NovaRuntimeError(RuntimeErrorType::RuntimeError, "file.lines(): File not found: " + p.string(), span);
+            }
+            std::ifstream file(p);
+            if (!file) {
+                throw NovaRuntimeError(RuntimeErrorType::RuntimeError, "file.lines(): Could not open file: " + p.string(), span);
+            }
+            auto list = std::make_shared<ListObject>();
+            std::string line;
+            while (std::getline(file, line)) {
+                if (!line.empty() && line.back() == '\r') line.pop_back();
+                list->push_back(Value(line));
+            }
+            return Value(list);
+        }, "file.lines");
+
+        module_cache_[name] = dict;
+        return dict;
+    }
+
+    if (name == "os" || name == "sys") {
+        auto dict = std::make_shared<DictObject>();
+
+#if defined(_WIN32)
+        (*dict)["platform"] = Value("windows");
+#elif defined(__APPLE__)
+        (*dict)["platform"] = Value("macos");
+#else
+        (*dict)["platform"] = Value("linux");
+#endif
+
+        (*dict)["args"] = Value(std::make_shared<ListObject>());
+
+        (*dict)["env"] = Value([](const std::vector<Value>& args, const SourceSpan& span) -> Value {
+            if (args.size() != 1 || !args[0].is_string()) {
+                throw NovaRuntimeError(RuntimeErrorType::TypeError, "os.env() requires 1 String variable name", span);
+            }
+            const char* val = std::getenv(args[0].as_string().c_str());
+            return val ? Value(std::string(val)) : Value();
+        }, "os.env");
+
+        (*dict)["cwd"] = Value([](const std::vector<Value>&, const SourceSpan&) -> Value {
+            return Value(std::filesystem::current_path().string());
+        }, "os.cwd");
+
+        (*dict)["exit"] = Value([](const std::vector<Value>& args, const SourceSpan&) -> Value {
+            int code = 0;
+            if (!args.empty() && args[0].is_number()) {
+                code = static_cast<int>(args[0].as_number());
+            }
+            std::exit(code);
+            return Value();
+        }, "os.exit");
+
+        (*dict)["exec"] = Value([](const std::vector<Value>& args, const SourceSpan& span) -> Value {
+            if (args.size() != 1 || !args[0].is_string()) {
+                throw NovaRuntimeError(RuntimeErrorType::TypeError, "os.exec() requires 1 String command argument", span);
+            }
+            std::string cmd = args[0].as_string();
+            std::string result;
+            char buffer[256];
+#if defined(_WIN32)
+            FILE* pipe = _popen(cmd.c_str(), "r");
+#else
+            FILE* pipe = popen(cmd.c_str(), "r");
+#endif
+            if (!pipe) {
+                throw NovaRuntimeError(RuntimeErrorType::RuntimeError, "os.exec(): Failed to execute command", span);
+            }
+            while (std::fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                result += buffer;
+            }
+#if defined(_WIN32)
+            _pclose(pipe);
+#else
+            pclose(pipe);
+#endif
+            return Value(result);
+        }, "os.exec");
+
+        module_cache_[name] = dict;
+        return dict;
+    }
+
+    if (name == "time") {
+        auto dict = std::make_shared<DictObject>();
+
+        (*dict)["now"] = Value([](const std::vector<Value>&, const SourceSpan&) -> Value {
+            auto now = std::chrono::system_clock::now();
+            auto duration = now.time_since_epoch();
+            double secs = std::chrono::duration<double>(duration).count();
+            return Value(secs);
+        }, "time.now");
+
+        (*dict)["sleep"] = Value([](const std::vector<Value>& args, const SourceSpan& span) -> Value {
+            if (args.size() != 1 || !args[0].is_number()) {
+                throw NovaRuntimeError(RuntimeErrorType::TypeError, "time.sleep() requires 1 Number argument (milliseconds)", span);
+            }
+            long long ms = static_cast<long long>(args[0].as_number());
+            if (ms > 0) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+            }
+            return Value();
+        }, "time.sleep");
+
+        (*dict)["clock"] = Value([](const std::vector<Value>&, const SourceSpan&) -> Value {
+            auto now = std::chrono::steady_clock::now();
+            auto duration = now.time_since_epoch();
+            double secs = std::chrono::duration<double>(duration).count();
+            return Value(secs);
+        }, "time.clock");
+
+        module_cache_[name] = dict;
+        return dict;
+    }
+
+    if (name == "json") {
+        auto dict = std::make_shared<DictObject>();
+
+        (*dict)["stringify"] = Value([](const std::vector<Value>& args, const SourceSpan& span) -> Value {
+            if (args.size() != 1) {
+                throw NovaRuntimeError(RuntimeErrorType::ArgumentError, "json.stringify() requires 1 argument", span);
+            }
+            return Value(json_stringify_helper(args[0]));
+        }, "json.stringify");
+
+        (*dict)["parse"] = Value([](const std::vector<Value>& args, const SourceSpan& span) -> Value {
+            if (args.size() != 1 || !args[0].is_string()) {
+                throw NovaRuntimeError(RuntimeErrorType::TypeError, "json.parse() requires 1 String argument", span);
+            }
+            return parse_json_string(args[0].as_string(), span);
+        }, "json.parse");
 
         module_cache_[name] = dict;
         return dict;
@@ -1116,7 +1567,11 @@ void Interpreter::visit(ast::NewExpr& expr) {
 
 void Interpreter::visit(ast::TypeExpr& expr) {
     Value val = evaluate(*expr.expression);
-    last_value_ = Value(std::string(val.type_name()));
+    if (val.is_instance() && val.as_instance()->klass) {
+        last_value_ = Value(val.as_instance()->klass->name);
+    } else {
+        last_value_ = Value(std::string(val.type_name()));
+    }
 }
 
 void Interpreter::visit(ast::SuperCallExpr& expr) {
@@ -1354,7 +1809,13 @@ void Interpreter::visit(ast::WhileStmt& stmt) {
         }
         if (stmt.body) {
             auto body_env = Environment::create(environment_);
-            execute_block(stmt.body->statements, body_env);
+            try {
+                execute_block(stmt.body->statements, body_env);
+            } catch (const BreakSignal&) {
+                break;
+            } catch (const ContinueSignal&) {
+                continue;
+            }
         }
     }
 }
@@ -1380,7 +1841,13 @@ void Interpreter::visit(ast::ForStmt& stmt) {
         auto loop_env = Environment::create(environment_);
         loop_env->define(stmt.variable_name, item);
         if (stmt.body) {
-            execute_block(stmt.body->statements, loop_env);
+            try {
+                execute_block(stmt.body->statements, loop_env);
+            } catch (const BreakSignal&) {
+                break;
+            } catch (const ContinueSignal&) {
+                continue;
+            }
         }
     }
 }
@@ -1589,6 +2056,63 @@ void Interpreter::visit(ast::ImportStmt& stmt) {
         "Unknown module '" + stmt.module_name + "'",
         stmt.span
     );
+}
+
+void Interpreter::visit(ast::BreakStmt&) {
+    throw BreakSignal{};
+}
+
+void Interpreter::visit(ast::ContinueStmt&) {
+    throw ContinueSignal{};
+}
+
+void Interpreter::visit(ast::EnumDeclStmt& stmt) {
+    auto dict = std::make_shared<DictObject>();
+    for (const auto& member : stmt.members) {
+        (*dict)[member] = Value(member);
+    }
+    Value enum_val(dict);
+    environment_->define(stmt.name, enum_val);
+    last_value_ = enum_val;
+}
+
+void Interpreter::visit(ast::ListComprehensionExpr& expr) {
+    Value iterable = evaluate(*expr.iterable);
+    if (!iterable.is_array()) {
+        throw NovaRuntimeError(
+            RuntimeErrorType::TypeError,
+            "List comprehension expects an iterable, got " + std::string(iterable.type_name()),
+            expr.span
+        );
+    }
+
+    auto arr = iterable.as_array();
+    auto result = std::make_shared<ListObject>();
+
+    for (const auto& item : *arr) {
+        auto comp_env = Environment::create(environment_);
+        comp_env->define(expr.variable, item);
+
+        std::shared_ptr<Environment> prev = environment_;
+        environment_ = comp_env;
+        try {
+            bool include = true;
+            if (expr.condition) {
+                Value cond_val = evaluate(*expr.condition);
+                include = cond_val.is_truthy();
+            }
+            if (include) {
+                Value elem_val = evaluate(*expr.element);
+                result->push_back(elem_val);
+            }
+            environment_ = prev;
+        } catch (...) {
+            environment_ = prev;
+            throw;
+        }
+    }
+
+    last_value_ = Value(result);
 }
 
 void Interpreter::visit(ast::Program& program) {

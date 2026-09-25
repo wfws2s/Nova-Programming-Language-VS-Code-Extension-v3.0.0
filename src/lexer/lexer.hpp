@@ -32,6 +32,8 @@ private:
 
     Token scan_number(SourceLocation start);
     Token scan_string(SourceLocation start);
+    Token scan_fstring(SourceLocation start);
+    Token scan_triple_string(SourceLocation start);
     Token scan_identifier(SourceLocation start);
 
     std::optional<TokenType> lookup_keyword(const std::string& text) const;

@@ -1,46 +1,19 @@
 #pragma once
 
 #include "ast/ast.hpp"
-#include "runtime/environment.hpp"
-#include "runtime/runtime_error.hpp"
-#include "runtime/value.hpp"
+#include "vm/chunk.hpp"
 
-#include <iostream>
 #include <memory>
 #include <string>
-#include <unordered_map>
-#include <vector>
 
-namespace nova {
+namespace nova::vm {
 
-struct CallFrame {
-    std::string function_name;
-    std::string filename;
-    SourceSpan call_span;
-};
-
-class Interpreter : public ast::ASTVisitor {
+class Compiler : public ast::ASTVisitor {
 public:
-    explicit Interpreter(std::ostream& output_stream = std::cout,
-                         std::istream& input_stream = std::cin);
+    Compiler();
 
-    void set_current_file(std::string filename) {
-        current_filename_ = std::move(filename);
-    }
-    const std::string& current_file() const { return current_filename_; }
+    std::unique_ptr<Chunk> compile(ast::Program& program);
 
-    void interpret(ast::Program& program);
-    Value evaluate(ast::Expr& expr);
-    void execute(ast::Stmt& stmt);
-    void execute_block(const std::vector<std::unique_ptr<ast::Stmt>>& statements,
-                       std::shared_ptr<Environment> environment);
-
-    std::shared_ptr<Environment> global_env() const { return globals_; }
-    std::shared_ptr<Environment> current_env() const { return environment_; }
-
-    std::string format_stack_trace(const SourceSpan& failing_span) const;
-
-    // AST Visitor overrides
     void visit(ast::LiteralExpr& expr) override;
     void visit(ast::VariableExpr& expr) override;
     void visit(ast::AssignExpr& expr) override;
@@ -80,23 +53,14 @@ public:
     void visit(ast::Program& program) override;
 
 private:
-    struct ReturnSignal {
-        Value value;
-    };
-    struct BreakSignal {};
-    struct ContinueSignal {};
+    void emit_byte(uint8_t byte, int line = 1);
+    void emit_op(OpCode op, int line = 1);
+    void emit_constant(Value value, int line = 1);
+    int emit_jump(OpCode instruction, int line = 1);
+    void patch_jump(int offset);
+    void emit_loop(int loop_start, int line = 1);
 
-    std::shared_ptr<DictObject> get_or_create_std_module(const std::string& name);
-
-    Value last_value_;
-    std::shared_ptr<Environment> globals_;
-    std::shared_ptr<Environment> environment_;
-    std::ostream& out_;
-    std::istream& in_;
-
-    std::string current_filename_ = "<main>";
-    std::vector<CallFrame> call_stack_;
-    std::unordered_map<std::string, std::shared_ptr<DictObject>> module_cache_;
+    std::unique_ptr<Chunk> chunk_;
 };
 
-}  // namespace nova
+}  // namespace nova::vm

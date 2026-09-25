@@ -228,6 +228,19 @@ std::unique_ptr<ast::Stmt> Parser::parse_declaration_or_statement() {
         if (match(TokenType::Import)) {
             return parse_import_statement();
         }
+        if (match(TokenType::Break)) {
+            Token tok = previous();
+            consume_statement_terminator();
+            return std::make_unique<ast::BreakStmt>(tok.span);
+        }
+        if (match(TokenType::Continue)) {
+            Token tok = previous();
+            consume_statement_terminator();
+            return std::make_unique<ast::ContinueStmt>(tok.span);
+        }
+        if (match(TokenType::Enum)) {
+            return parse_enum_declaration();
+        }
         if (match(TokenType::Class)) {
             return parse_class_declaration();
         }
@@ -495,6 +508,32 @@ std::unique_ptr<ast::Stmt> Parser::parse_class_declaration() {
         std::move(name), std::move(parent_name), std::move(methods), span);
 }
 
+std::unique_ptr<ast::Stmt> Parser::parse_enum_declaration() {
+    Token enum_token = previous();
+    const Token& name_token = consume_binding_name("enum name after 'enum'");
+    std::string name = name_token.lexeme;
+    consume_statement_terminator();
+    skip_newlines();
+
+    std::vector<std::string> members;
+    while (!check(TokenType::End) && !is_at_end()) {
+        const Token& m_token = consume_binding_name("enum member name");
+        members.push_back(m_token.lexeme);
+        if (match(TokenType::Comma)) {
+            // optional comma
+        } else {
+            consume_statement_terminator();
+        }
+        skip_newlines();
+    }
+
+    const Token& end_enum_token = consume(TokenType::End, "Expected 'end' after enum body");
+    SourceSpan span{enum_token.span.start, end_enum_token.span.end};
+    consume_statement_terminator();
+
+    return std::make_unique<ast::EnumDeclStmt>(std::move(name), std::move(members), span);
+}
+
 std::unique_ptr<ast::Stmt> Parser::parse_global_statement() {
     Token global_tok = previous();
     const Token& var_token = consume_binding_name("variable name after 'global'");
@@ -550,7 +589,7 @@ std::unique_ptr<ast::Expr> Parser::parse_prefix() {
     if (match(TokenType::Number)) {
         return parse_number_literal();
     }
-    if (match(TokenType::String)) {
+    if (match(TokenType::String) || match(TokenType::FString)) {
         return parse_string_literal();
     }
     if (match(TokenType::True)) {
@@ -835,12 +874,34 @@ std::unique_ptr<ast::Expr> Parser::parse_array() {
 
     skip_newlines();
     if (!check(TokenType::RightBracket)) {
-        do {
+        auto first_expr = parse_expression();
+        skip_newlines();
+
+        // Check for list comprehension: [expr for var in iterable (if cond)?]
+        if (match(TokenType::For)) {
+            const Token& var_token = consume_binding_name("loop variable name in list comprehension");
+            std::string var_name = var_token.lexeme;
+            consume(TokenType::In, "Expected 'in' after list comprehension variable");
+            auto iterable = parse_expression();
+            std::unique_ptr<ast::Expr> condition = nullptr;
+            skip_newlines();
+            if (match(TokenType::If)) {
+                condition = parse_expression();
+                skip_newlines();
+            }
+            const Token& close_bracket = consume(TokenType::RightBracket, "Expected ']' after list comprehension");
+            SourceSpan span{open_bracket.span.start, close_bracket.span.end};
+            return std::make_unique<ast::ListComprehensionExpr>(
+                std::move(first_expr), std::move(var_name), std::move(iterable), std::move(condition), span);
+        }
+
+        elements.push_back(std::move(first_expr));
+        while (match(TokenType::Comma)) {
             skip_newlines();
             if (check(TokenType::RightBracket)) break;
             elements.push_back(parse_expression());
             skip_newlines();
-        } while (match(TokenType::Comma));
+        }
     }
 
     const Token& close_bracket = consume(TokenType::RightBracket, "Expected ']' after array elements");

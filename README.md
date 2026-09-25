@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/nova-lang/nova/actions/workflows/ci.yml/badge.svg)](https://github.com/nova-lang/nova/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-0.2.2-blue.svg)](https://github.com/nova-lang/nova/releases)
+[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/nova-lang/nova/releases)
 [![C++20](https://img.shields.io/badge/standard-C%2B%2B20-crimson.svg)](https://en.cppreference.com/w/cpp/20)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)](https://github.com/nova-lang/nova)
 

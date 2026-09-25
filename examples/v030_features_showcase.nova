@@ -1,0 +1,99 @@
+# NOVA v0.3.0 Feature Showcase Demo
+
+import file as f
+import os
+import json
+import time
+
+print("==========================================")
+print("🌟 NOVA v0.3.0 Full Feature Showcase")
+print("==========================================")
+
+# 1. f-Strings & Multiline Strings
+let user_name = "Developer"
+let release_version = 0.3
+print(f"🚀 Hello {user_name}! Welcome to Nova v{release_version}.")
+
+let banner = """
+   _  __               
+  / |/ /__ _  _____ _
+ /    / _ \ |/ / _ `/
+/_/|_/\___/___/\_,_/  v0.3.0
+"""
+print(banner)
+
+# 2. Enum Declarations
+enum TaskPriority
+    LOW
+    MEDIUM
+    HIGH
+    CRITICAL
+end
+
+print("Enum access:", TaskPriority.CRITICAL)
+print("Enum equality:", TaskPriority.HIGH == "HIGH")
+
+# 3. List Comprehensions
+let numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+let even_squares = [x * x for x in numbers if x % 2 == 0]
+print("Even squares from comprehension:", even_squares)
+
+# 4. Break & Continue in Loops
+print("Testing break and continue in loop:")
+for n in 1..10
+    if n % 2 != 0
+        continue
+    end
+    if n > 6
+        break
+    end
+    print(f"  -> Processed even step: {n}")
+end
+
+# 5. File I/O Module
+let temp_file = "nova_demo_output.json"
+let payload = {
+    "project": "NOVA Language",
+    "version": "0.3.0",
+    "features": [
+        "break_continue",
+        "enum",
+        "f_string",
+        "list_comprehension",
+        "file_io",
+        "json_support",
+        "time_os"
+    ]
+}
+
+# 6. JSON Module
+let json_text = json.stringify(payload)
+f.write(temp_file, json_text)
+print("JSON written to file:", f.exists(temp_file))
+
+let read_back = f.read(temp_file)
+let parsed_payload = json.parse(read_back)
+print("JSON parsed back successfully! Project:", parsed_payload["project"])
+print("Total new features recorded:", len(parsed_payload["features"]))
+
+# Cleanup demo file
+f.remove(temp_file)
+
+# 7. OS & Time Modules
+print("Platform:", os.platform)
+print("Current directory:", os.cwd())
+print("Unix Timestamp:", time.now())
+
+# 8. Object-Oriented Type Introspection
+class Superhero
+    fn init(self, hero_name)
+        self.hero_name = hero_name
+    end
+end
+
+let hero = Superhero("NovaMan")
+print(f"Hero object type inspection: {typeof(hero)}")
+
+print("==========================================")
+print("✅ All Nova v0.3.0 features verified successfully!")
+print("==========================================")

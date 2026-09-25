@@ -43,6 +43,10 @@ enum class TokenType {
     Global,
     New,
     Super,
+    Break,
+    Continue,
+    Enum,
+    FString,
 
     // Operators and punctuation
     Plus,

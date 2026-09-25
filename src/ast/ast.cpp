@@ -34,6 +34,10 @@ void TryCatchStmt::accept(ASTVisitor& visitor) { visitor.visit(*this); }
 void ImportStmt::accept(ASTVisitor& visitor) { visitor.visit(*this); }
 void GlobalStmt::accept(ASTVisitor& visitor) { visitor.visit(*this); }
 void ClassDeclStmt::accept(ASTVisitor& visitor) { visitor.visit(*this); }
+void BreakStmt::accept(ASTVisitor& visitor) { visitor.visit(*this); }
+void ContinueStmt::accept(ASTVisitor& visitor) { visitor.visit(*this); }
+void EnumDeclStmt::accept(ASTVisitor& visitor) { visitor.visit(*this); }
+void ListComprehensionExpr::accept(ASTVisitor& visitor) { visitor.visit(*this); }
 void Program::accept(ASTVisitor& visitor) { visitor.visit(*this); }
 
 }  // namespace nova::ast

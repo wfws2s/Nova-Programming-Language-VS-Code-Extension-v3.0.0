@@ -542,6 +542,59 @@ public:
     void accept(ASTVisitor& visitor) override;
 };
 
+// break
+class BreakStmt : public Stmt {
+public:
+    explicit BreakStmt(SourceSpan span) {
+        this->span = span;
+    }
+    void accept(ASTVisitor& visitor) override;
+};
+
+// continue
+class ContinueStmt : public Stmt {
+public:
+    explicit ContinueStmt(SourceSpan span) {
+        this->span = span;
+    }
+    void accept(ASTVisitor& visitor) override;
+};
+
+// enum Color RED GREEN BLUE end
+class EnumDeclStmt : public Stmt {
+public:
+    std::string name;
+    std::vector<std::string> members;
+
+    EnumDeclStmt(std::string name, std::vector<std::string> members, SourceSpan span)
+        : name(std::move(name)), members(std::move(members)) {
+        this->span = span;
+    }
+    void accept(ASTVisitor& visitor) override;
+};
+
+// [expr for var in iterable (if cond)?]
+class ListComprehensionExpr : public Expr {
+public:
+    std::unique_ptr<Expr> element;       // expression to evaluate
+    std::string variable;                // loop variable name
+    std::unique_ptr<Expr> iterable;      // the collection/range to iterate
+    std::unique_ptr<Expr> condition;     // optional filter condition (may be null)
+
+    ListComprehensionExpr(std::unique_ptr<Expr> element,
+                          std::string variable,
+                          std::unique_ptr<Expr> iterable,
+                          std::unique_ptr<Expr> condition,
+                          SourceSpan span)
+        : element(std::move(element)),
+          variable(std::move(variable)),
+          iterable(std::move(iterable)),
+          condition(std::move(condition)) {
+        this->span = span;
+    }
+    void accept(ASTVisitor& visitor) override;
+};
+
 class Program : public Node {
 public:
     std::vector<std::unique_ptr<Stmt>> statements;
@@ -581,6 +634,7 @@ public:
     virtual void visit(NewExpr& expr) = 0;
     virtual void visit(TypeExpr& expr) = 0;
     virtual void visit(SuperCallExpr& expr) = 0;
+    virtual void visit(ListComprehensionExpr& expr) = 0;
 
     // Statements
     virtual void visit(ExprStmt& stmt) = 0;
@@ -595,6 +649,9 @@ public:
     virtual void visit(ImportStmt& stmt) = 0;
     virtual void visit(GlobalStmt& stmt) = 0;
     virtual void visit(ClassDeclStmt& stmt) = 0;
+    virtual void visit(BreakStmt& stmt) = 0;
+    virtual void visit(ContinueStmt& stmt) = 0;
+    virtual void visit(EnumDeclStmt& stmt) = 0;
     virtual void visit(Program& program) = 0;
 };
 

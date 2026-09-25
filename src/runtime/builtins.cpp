@@ -389,7 +389,7 @@ void Builtins::register_all(Environment& env, std::ostream& out, std::istream& i
         return Value(args[0].to_string());
     }, "string"));
 
-    // typeof(val) - Full release canonical type name
+    // typeof(val) - Full release canonical type name (returns class name for instances)
     env.define("typeof", Value([](const std::vector<Value>& args, const SourceSpan& span) -> Value {
         if (args.size() != 1) {
             throw NovaRuntimeError(
@@ -397,6 +397,9 @@ void Builtins::register_all(Environment& env, std::ostream& out, std::istream& i
                 "typeof() takes exactly 1 argument (" + std::to_string(args.size()) + " given)",
                 span
             );
+        }
+        if (args[0].is_instance() && args[0].as_instance()->klass) {
+            return Value(args[0].as_instance()->klass->name);
         }
         return Value(std::string(args[0].type_name()));
     }, "typeof"));
@@ -409,6 +412,9 @@ void Builtins::register_all(Environment& env, std::ostream& out, std::istream& i
                 "type() takes exactly 1 argument (" + std::to_string(args.size()) + " given)",
                 span
             );
+        }
+        if (args[0].is_instance() && args[0].as_instance()->klass) {
+            return Value(args[0].as_instance()->klass->name);
         }
         return Value(std::string(args[0].type_name()));
     }, "type"));

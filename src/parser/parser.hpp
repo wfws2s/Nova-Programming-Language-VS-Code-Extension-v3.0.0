@@ -83,6 +83,7 @@ private:
     std::unique_ptr<ast::Stmt> parse_try_statement();
     std::unique_ptr<ast::Stmt> parse_import_statement();
     std::unique_ptr<ast::Stmt> parse_class_declaration();
+    std::unique_ptr<ast::Stmt> parse_enum_declaration();
     std::unique_ptr<ast::Stmt> parse_global_statement();
     std::unique_ptr<ast::Stmt> parse_expression_statement();
     std::unique_ptr<ast::BlockStmt> parse_block();

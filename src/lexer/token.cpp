@@ -35,6 +35,9 @@ bool Token::is_keyword() const {
         case TokenType::Global:
         case TokenType::New:
         case TokenType::Super:
+        case TokenType::Break:
+        case TokenType::Continue:
+        case TokenType::Enum:
             return true;
         default:
             return false;
@@ -112,6 +115,14 @@ const char* token_type_name(TokenType type) {
             return "New";
         case TokenType::Super:
             return "Super";
+        case TokenType::Break:
+            return "Break";
+        case TokenType::Continue:
+            return "Continue";
+        case TokenType::Enum:
+            return "Enum";
+        case TokenType::FString:
+            return "FString";
         case TokenType::Plus:
             return "Plus";
         case TokenType::Minus:

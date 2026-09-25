@@ -9,10 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned
-- Bytecode virtual machine (VM) & compiler pipeline.
-- Standard Library `os`, `json`, `io`, `time` and `http` modules.
-- Language Server Protocol (LSP) and official VS Code syntax extension.
+---
+
+## [0.3.0] - 2026-09-06
+
+### Added
+- **`break` and `continue` statements** for loop control flow.
+- **Standard Library `file` module**: `file.read()`, `file.write()`, `file.append()`, `file.exists()`, `file.remove()`, `file.lines()`.
+- **Standard Library `os` module**: `os.args`, `os.env()`, `os.platform`, `os.exit()`, `os.cwd()`, `os.exec()`.
+- **Standard Library `json` module**: `json.parse()`, `json.stringify()`.
+- **Standard Library `time` module**: `time.now()`, `time.sleep()`, `time.clock()`.
+- **f-String interpolation**: `f"Hello {name}!"` syntax for inline expression embedding.
+- **Multiline strings**: `"""..."""` triple-quote syntax.
+- **`enum` keyword**: `enum Color RED GREEN BLUE end` with dot-access `Color.RED`.
+- **List comprehension**: `[x * x for x in 1..10]` and `[x for x in list if cond]`.
+- **`typeof` instance returns class name**: `typeof(Dog("x","y"))` returns `"Dog"` instead of `"Instance"`.
+- **Bytecode VM skeleton**: Foundation for `src/vm/` compiler and stack-based VM (in progress).
+- **REPL v2**: Multiline input buffer, in-memory history navigation.
 
 ---
 
