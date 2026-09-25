@@ -1,0 +1,158 @@
+{
+  "if": {
+    "prefix": "if",
+    "body": ["if ${1:condition}", "\t${0}", "end"],
+    "description": "if block"
+  },
+  "if-elif-else": {
+    "prefix": "ifee",
+    "body": ["if ${1:condition}", "\t${2}", "elif ${3:condition}", "\t${4}", "else", "\t${0}", "end"],
+    "description": "if / elif / else block"
+  },
+  "while": {
+    "prefix": "while",
+    "body": ["while ${1:condition}", "\t${0}", "end"],
+    "description": "while loop"
+  },
+  "for-in": {
+    "prefix": "for",
+    "body": ["for ${1:item} in ${2:collection}", "\t${0}", "end"],
+    "description": "for-in loop"
+  },
+  "for-range": {
+    "prefix": "forrange",
+    "body": ["for ${1:i} in ${2:1}..${3:10}", "\t${0}", "end"],
+    "description": "for loop over a numeric range"
+  },
+  "for-break": {
+    "prefix": "forbreak",
+    "body": ["for ${1:item} in ${2:collection}", "\tif ${3:condition}", "\t\tbreak", "\tend", "\t${0}", "end"],
+    "description": "for loop with break"
+  },
+  "while-break": {
+    "prefix": "whilebreak",
+    "body": ["while ${1:true}", "\tif ${2:condition}", "\t\tbreak", "\tend", "\t${0}", "end"],
+    "description": "while loop with break"
+  },
+  "function": {
+    "prefix": "fn",
+    "body": ["fn ${1:name}(${2:args})", "\t${0}", "\treturn null", "end"],
+    "description": "function definition"
+  },
+  "class": {
+    "prefix": "class",
+    "body": [
+      "class ${1:Name}",
+      "\tfn init(self, ${2:args})",
+      "\t\t${0}",
+      "\tend",
+      "end"
+    ],
+    "description": "class definition"
+  },
+  "class-extends": {
+    "prefix": "classext",
+    "body": [
+      "class ${1:Name} extends ${2:Parent}",
+      "\tfn init(self, ${3:args})",
+      "\t\tsuper.init(${4})",
+      "\t\t${0}",
+      "\tend",
+      "end"
+    ],
+    "description": "class definition with inheritance"
+  },
+  "static-fn": {
+    "prefix": "staticfn",
+    "body": ["static fn ${1:name}(${2:args})", "\t${0}", "end"],
+    "description": "static method"
+  },
+  "enum": {
+    "prefix": "enum",
+    "body": [
+      "enum ${1:Name}",
+      "\t${2:MEMBER_A}",
+      "\t${3:MEMBER_B}",
+      "\t${0}",
+      "end"
+    ],
+    "description": "enum declaration"
+  },
+  "try-catch": {
+    "prefix": "try",
+    "body": [
+      "try",
+      "\t${1}",
+      "catch err",
+      "\tprint(\"Caught error:\", err[\"type\"], err[\"message\"])",
+      "\t${0}",
+      "end"
+    ],
+    "description": "try/catch block"
+  },
+  "let": {
+    "prefix": "let",
+    "body": "let ${1:name} = ${2:value}",
+    "description": "constant binding"
+  },
+  "fstring": {
+    "prefix": "fstr",
+    "body": "f\"${1:text} {${2:variable}}\"",
+    "description": "f-string (interpolated string)"
+  },
+  "triple-string": {
+    "prefix": "tstr",
+    "body": ["\"\"\"", "${0}", "\"\"\""],
+    "description": "triple-quoted multiline string"
+  },
+  "list-comprehension": {
+    "prefix": "listcomp",
+    "body": "[${1:expr} for ${2:item} in ${3:collection}]",
+    "description": "list comprehension"
+  },
+  "list-comprehension-if": {
+    "prefix": "listcompif",
+    "body": "[${1:expr} for ${2:item} in ${3:collection} if ${4:condition}]",
+    "description": "list comprehension with filter"
+  },
+  "import-path": {
+    "prefix": "import",
+    "body": "import \"${1:./file.nova}\" as ${2:alias}",
+    "description": "import a .nova file by path"
+  },
+  "import-module": {
+    "prefix": "importmod",
+    "body": "import ${1|random,math,string,list,dict,file,io,os,sys,json,time|} as ${2:alias}",
+    "description": "import a standard module"
+  },
+  "import-file": {
+    "prefix": "importfile",
+    "body": ["import file as fs", "", "let ${1:content} = fs.read(\"${2:path.txt}\")"],
+    "description": "import file module"
+  },
+  "import-json": {
+    "prefix": "importjson",
+    "body": ["import json as json", "", "let ${1:data} = json.parse(${2:text})"],
+    "description": "import json module"
+  },
+  "import-os": {
+    "prefix": "importos",
+    "body": ["import os as os", "", "let ${1:cwd} = os.cwd()"],
+    "description": "import os module"
+  },
+  "import-time": {
+    "prefix": "importtime",
+    "body": ["import time as time", "", "let ${1:t} = time.now()"],
+    "description": "import time module"
+  },
+  "print": {
+    "prefix": "print",
+    "body": "print(${0})",
+    "description": "print statement"
+  },
+  "print-fstring": {
+    "prefix": "printf",
+    "body": "print(f\"${1:text}: {${2:value}}\")",
+    "description": "print with f-string"
+  }
+}

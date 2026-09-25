@@ -1,0 +1,105 @@
+{
+  "name": "nova-lang",
+  "displayName": "NOVA Language Pack",
+  "description": "Rich syntax highlighting, real-time error diagnostics, smart autocomplete, signature hints, outline symbols, snippets, and execution support for the NOVA programming language (.nova).",
+  "version": "0.3.0",
+  "publisher": "nova-lang",
+  "icon": "icon.png",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Snippets"
+  ],
+  "activationEvents": [
+    "onLanguage:nova",
+    "onCommand:nova.runFile",
+    "onCommand:nova.configureRuntime"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "nova",
+        "aliases": ["NOVA", "nova"],
+        "extensions": [".nova"],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/nova-file-icon.png",
+          "dark": "./icons/nova-file-icon.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "nova",
+        "scopeName": "source.nova",
+        "path": "./syntaxes/nova.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "nova",
+        "path": "./snippets/nova.json"
+      }
+    ],
+    "configuration": {
+      "title": "NOVA Language",
+      "properties": {
+        "nova.diagnostics.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show real-time red/yellow underlines for NOVA syntax, keyword, and loop errors."
+        },
+        "nova.diagnostics.delay": {
+          "type": "number",
+          "default": 300,
+          "description": "Delay in milliseconds before validating syntax after typing stops."
+        },
+        "nova.runtime.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to nova.exe (leave empty to auto-detect from system installation or build directory)."
+        },
+        "nova.runtime.clearTerminal": {
+          "type": "boolean",
+          "default": false,
+          "description": "Clear the terminal before running a NOVA file."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "nova.runFile",
+        "title": "NOVA: Run Current File",
+        "icon": "$(play)"
+      },
+      {
+        "command": "nova.configureRuntime",
+        "title": "NOVA: Configure Runtime Path",
+        "icon": "$(settings-gear)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "nova.runFile",
+          "when": "editorLangId == nova",
+          "group": "navigation@1"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "editor.debug.action.toggleBreakpoint",
+        "key": "f9",
+        "when": "editorLangId == nova"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "echo \"no build step\""
+  }
+}
